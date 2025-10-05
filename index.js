@@ -1,9 +1,11 @@
 // index.js (ES module)
 import { Client, GatewayIntentBits, PermissionFlagsBits } from "discord.js";
 import fs from "fs";
+import http from "http";
 
 const TOKEN = process.env.BOT_TOKEN; // Keep secret in Render
 const ANNOUNCE_CHANNEL = "bot-logs"; // change to your channel name
+const PORT = process.env.PORT || 10000;
 
 const client = new Client({
     intents: [
@@ -340,6 +342,19 @@ client.on("error", (error) => {
 
 process.on("unhandledRejection", (error) => {
     console.error("Unhandled rejection:", error);
+});
+
+// Simple HTTP server for Render (so it detects the port)
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+        status: 'online',
+        bot: client.user?.tag || 'Starting...',
+        uptime: process.uptime(),
+        guilds: client.guilds.cache.size
+    }));
+}).listen(PORT, () => {
+    console.log(`✅ Health check server running on port ${PORT}`);
 });
 
 client.login(TOKEN);
