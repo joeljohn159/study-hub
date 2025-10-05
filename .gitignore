@@ -1,0 +1,13 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.env
+
+# Data file (optional if you want to keep it private)
+invites.json
+
+# Optional: MacOS/Windows temp files
+.DS_Store
+Thumbs.db
