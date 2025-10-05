@@ -1,5 +1,6 @@
-const { Client, GatewayIntentBits } = require("discord.js");
-const fs = require("fs");
+// index.js (ES module)
+import { Client, GatewayIntentBits } from "discord.js";
+import fs from "fs";
 
 const TOKEN = process.env.BOT_TOKEN; // Keep secret in Render
 const ANNOUNCE_CHANNEL = "bot-logs"; // change to your channel name
