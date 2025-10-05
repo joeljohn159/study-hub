@@ -333,6 +333,23 @@ client.on("messageCreate", async (message) => {
 
         message.reply(leaderboard || "No invite data yet!");
     }
+
+    if (command === "sync") {
+        if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+            return message.reply("❌ You need 'Manage Server' permission to use this command.");
+        }
+
+        try {
+            const guild = message.guild;
+            const guildInvites = await guild.invites.fetch();
+            invites.set(guild.id, guildInvites);
+            message.reply(`✅ Synced ${guildInvites.size} invites! The bot is now tracking all current invites.`);
+            console.log(`🔄 Manually synced ${guildInvites.size} invites for ${guild.name}`);
+        } catch (err) {
+            message.reply("❌ Failed to sync invites. Make sure the bot has 'Manage Server' permission.");
+            console.error("Sync error:", err);
+        }
+    }
 });
 
 // Error handlers
