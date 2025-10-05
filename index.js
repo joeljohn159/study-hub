@@ -94,30 +94,47 @@ client.once("clientReady", async () => {
             console.error(`❌ Failed to cache invites for ${guild.name}:`, err.message);
         }
     }
+    
+    console.log(`🎯 Bot is ready and tracking invites!`);
 });
 
 // --- Member joins ---
 client.on("guildMemberAdd", async (member) => {
     try {
         const guild = member.guild;
+        
+        // Small delay to ensure invite cache is ready
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         const cachedInvites = invites.get(guild.id);
         
         if (!cachedInvites) {
-            console.log("No cached invites, fetching...");
+            console.log("⚠️ No cached invites, fetching and caching...");
             const newInvites = await guild.invites.fetch();
             invites.set(guild.id, newInvites);
+            console.log(`⚠️ ${member.user.tag} joined but cache wasn't ready - invite tracking may be inaccurate`);
             return;
         }
 
         const newInvites = await guild.invites.fetch();
         const usedInvite = newInvites.find(
-            (inv) => cachedInvites.get(inv.code)?.uses < inv.uses
+            (inv) => {
+                const oldUses = cachedInvites.get(inv.code)?.uses || 0;
+                return inv.uses > oldUses;
+            }
         );
 
         invites.set(guild.id, newInvites);
 
         if (!usedInvite || !usedInvite.inviter) {
-            console.log(`${member.user.tag} joined but couldn't determine inviter`);
+            console.log(`⚠️ ${member.user.tag} joined but couldn't determine inviter (vanity URL or widget?)`);
+            
+            // Store as unknown inviter
+            const userId = member.id;
+            if (!inviteData[userId]) {
+                inviteData[userId] = { invited: [], invited_by: null };
+            }
+            saveData();
             return;
         }
 
@@ -247,6 +264,30 @@ async function updateRole(guild, inviterId, totalInvites) {
         console.error("Error updating inviter role:", err.message);
     }
 }
+
+// --- Invite cache updates ---
+client.on("inviteCreate", async (invite) => {
+    try {
+        const guildInvites = invites.get(invite.guild.id) || new Map();
+        guildInvites.set(invite.code, invite);
+        invites.set(invite.guild.id, guildInvites);
+        console.log(`➕ New invite created: ${invite.code}`);
+    } catch (err) {
+        console.error("Error handling inviteCreate:", err);
+    }
+});
+
+client.on("inviteDelete", async (invite) => {
+    try {
+        const guildInvites = invites.get(invite.guild.id);
+        if (guildInvites) {
+            guildInvites.delete(invite.code);
+            console.log(`➖ Invite deleted: ${invite.code}`);
+        }
+    } catch (err) {
+        console.error("Error handling inviteDelete:", err);
+    }
+});
 
 // --- Commands ---
 client.on("messageCreate", async (message) => {
